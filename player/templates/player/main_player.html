@@ -1,0 +1,773 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5 text-center" style="max-width: 600px;">
+    
+    <div class="card p-4 shadow">
+        <h2 class="mb-4">Player</h2>
+        
+        <!-- Upload Button -->
+        <div class="mb-4">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                <i class="bi bi-upload"></i> ファイルをアップロード
+            </button>
+        </div>
+        
+        <!-- File Selection -->
+        <div class="mb-4">
+            <select id="music-select" class="form-select">
+                <option value="">音楽ファイルを選択してください</option>
+                {% for music in music_files %}
+                    <option value="{{ music.id }}" data-url="{{ music.file.url }}">{{ music.title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <!-- Hidden CSRF Token for API calls -->
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+    
+        <!-- Hidden Audio Player -->
+        <audio id="audio-player" style="display: none;" preload="auto">
+            お使いのブラウザはaudioタグに対応していません。
+        </audio>
+        
+        <!-- Time Display -->
+        <div class="mb-2">
+            <span id="time-display" class="text-muted">0.0 / 0.0</span>
+        </div>
+        
+        <!-- Loop Controls -->
+        <div class="mb-3">
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="loop-check">
+                <label class="form-check-label" for="loop-check">ループ再生</label>
+            </div>
+            <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#loopSettingsModal">
+                ループ設定
+            </button>
+        </div>
+        
+        <!-- 5分割シークバー -->
+        <div class="mb-3">
+            <div class="row">
+                <div class="col-12">
+                    <input type="range" class="form-range" id="seek-bar-1" value="0" min="0" max="20" step="0.1">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <input type="range" class="form-range" id="seek-bar-2" value="0" min="20" max="40" step="0.1">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <input type="range" class="form-range" id="seek-bar-3" value="0" min="40" max="60" step="0.1">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <input type="range" class="form-range" id="seek-bar-4" value="0" min="60" max="80" step="0.1">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <input type="range" class="form-range" id="seek-bar-5" value="0" min="80" max="100" step="0.1">
+                </div>
+            </div>
+        </div>
+    
+        <!-- Controls -->
+        <div class="mt-3 position-relative">
+            <div class="d-flex justify-content-center">
+                <button id="play-pause-btn" class="btn btn-primary btn-lg rounded-circle" style="width: 70px; height: 70px;">
+                    <i class="bi bi-play-fill" style="font-size: 2rem;"></i>
+                </button>
+            </div>
+            <div class="position-absolute" style="right: 0; top: 50%; transform: translateY(-50%); display: flex; align-items: center;">
+                <span id="speed-display" class="text-muted me-2">1.0x</span>
+                <button id="speed-btn" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#speedModal">
+                    再生速度
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- デバッグ用: 音声波形表示エリア -->
+<div class="container mt-4" style="max-width: 1200px;">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">デバッグ: 音声波形</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-12">
+                    <canvas id="waveform-canvas" width="1000" height="200" style="border: 1px solid #ddd; background: #f8f9fa;"></canvas>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-12">
+                    <canvas id="waveform-canvas-2" width="1000" height="200" style="border: 1px solid #ddd; background: #f8f9fa;"></canvas>
+                </div>
+            </div>
+            <div class="mt-3">
+                <small class="text-muted">
+                    <strong>凡例:</strong> 
+                    <span style="color: #007bff;">青線</span> = 音声波形, 
+                    <span style="color: #28a745;">緑線</span> = 現在の再生位置
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Speed Modal -->
+<div class="modal fade" id="speedModal" tabindex="-1" aria-labelledby="speedModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="speedModalLabel">再生速度を選択</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="speed-range" class="form-label">現在の再生速度: <span id="current-speed">1.0</span>x</label>
+                    <input type="range" class="form-range" id="speed-range" min="0.25" max="2.0" step="0.05" value="1.0">
+                </div>
+                <div class="row text-center">
+                    <div class="col">
+                        <small class="text-muted">0.25x</small>
+                    </div>
+                    <div class="col">
+                        <small class="text-muted">0.5x</small>
+                    </div>
+                    <div class="col">
+                        <small class="text-muted">0.75x</small>
+                    </div>
+                    <div class="col">
+                        <small class="text-muted">1.0x</small>
+                    </div>
+                    <div class="col">
+                        <small class="text-muted">1.25x</small>
+                    </div>
+                    <div class="col">
+                        <small class="text-muted">1.5x</small>
+                    </div>
+                    <div class="col">
+                        <small class="text-muted">1.75x</small>
+                    </div>
+                    <div class="col">
+                        <small class="text-muted">2.0x</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadModalLabel">音楽ファイルをアップロード</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" action="{% url 'player:file_upload' %}">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_file" class="form-label">音楽ファイルを選択</label>
+                        <input type="file" name="file" class="form-control" id="id_file" accept="audio/*" required>
+                        <div class="form-text">MP3, WAV, FLAC, AAC形式のファイルをアップロードできます。</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="submit" class="btn btn-primary">アップロード</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Loop Settings Modal -->
+<div class="modal fade" id="loopSettingsModal" tabindex="-1" aria-labelledby="loopSettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="loopSettingsModalLabel">ループ設定</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="loop-start-time" class="form-label">ループ開始時間 (秒)</label>
+                    <input type="number" id="loop-start-time" class="form-control" value="0" min="0" step="0.1">
+                </div>
+                <div class="mb-3">
+                    <label for="loop-end-time" class="form-label">ループ終了時間 (秒)</label>
+                    <input type="number" id="loop-end-time" class="form-control" value="0" min="0" step="0.1">
+                </div>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="auto-loop-end">
+                        <label class="form-check-label" for="auto-loop-end">
+                            現在の再生位置を終了位置に設定
+                        </label>
+                    </div>
+                </div>
+                <div class="alert alert-info">
+                    <small>
+                        <strong>ヒント:</strong><br>
+                        • エイト単位ループ: 8エイト（1フレーズ）ごとに自動ループ<br>
+                        • カスタムループ: 指定した時間範囲を繰り返し再生<br>
+                        • 現在の再生位置を終了位置に設定すると、その時点でループが終了します
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                <button type="button" class="btn btn-primary" id="apply-loop-settings">設定を適用</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* 非アクティブなシークバーのつまみを完全に透明にする */
+.seek-bar-inactive {
+    opacity: 1;
+}
+
+.seek-bar-inactive::-webkit-slider-thumb {
+    opacity: 0;
+}
+
+.seek-bar-inactive::-moz-range-thumb {
+    opacity: 0;
+}
+
+.seek-bar-inactive::-ms-thumb {
+    opacity: 0;
+}
+
+/* アクティブなシークバーのつまみを表示 */
+.seek-bar-active {
+    opacity: 1;
+}
+
+.seek-bar-active::-webkit-slider-thumb {
+    opacity: 1;
+}
+
+.seek-bar-active::-moz-range-thumb {
+    opacity: 1;
+}
+
+.seek-bar-active::-ms-thumb {
+    opacity: 1;
+}
+
+/* エラーメッセージのスタイル */
+.error-message {
+    color: #dc3545;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    display: none;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const audioPlayer = document.getElementById('audio-player');
+    const musicSelect = document.getElementById('music-select');
+    const playPauseBtn = document.getElementById('play-pause-btn');
+    const timeDisplay = document.getElementById('time-display');
+    const seekBars = [
+        document.getElementById('seek-bar-1'),
+        document.getElementById('seek-bar-2'),
+        document.getElementById('seek-bar-3'),
+        document.getElementById('seek-bar-4'),
+        document.getElementById('seek-bar-5')
+    ];
+    
+    const speedRange = document.getElementById('speed-range');
+    const currentSpeedDisplay = document.getElementById('current-speed');
+    const speedDisplay = document.getElementById('speed-display');
+    const loopCheck = document.getElementById('loop-check');
+    const loopStartTimeInput = document.getElementById('loop-start-time');
+    const loopEndTimeInput = document.getElementById('loop-end-time');
+    const autoLoopEndCheck = document.getElementById('auto-loop-end');
+    const applyLoopSettingsBtn = document.getElementById('apply-loop-settings');
+    const waveformCanvas = document.getElementById('waveform-canvas');
+    const waveformCanvas2 = document.getElementById('waveform-canvas-2');
+    
+    let isSeeking = false;
+    let wasPlaying = false;
+    let currentActiveBar = 0;
+    let currentSpeed = 1.0;
+    let seekTimeout = null;
+    let audioData = null;  // 音声データ（波形表示用）
+    let audioDuration = 0;  // 音声の長さ
+    
+    // 初期状態では再生ボタンを無効化
+    playPauseBtn.disabled = true;
+    playPauseBtn.classList.remove('btn-primary');
+    playPauseBtn.classList.add('btn-secondary');
+    
+    // 波形表示エリアを初期化
+    if (waveformCanvas && waveformCanvas2) {
+        const ctx = waveformCanvas.getContext('2d');
+        const ctx2 = waveformCanvas2.getContext('2d');
+        
+        // 背景を描画
+        ctx.fillStyle = '#f8f9fa';
+        ctx.fillRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+        ctx2.fillStyle = '#f8f9fa';
+        ctx2.fillRect(0, 0, waveformCanvas2.width, waveformCanvas2.height);
+        
+        // 初期メッセージを表示
+        ctx.fillStyle = '#6c757d';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('音楽ファイルを選択すると波形が表示されます', waveformCanvas.width / 2, waveformCanvas.height / 2);
+        
+        ctx2.fillStyle = '#6c757d';
+        ctx2.font = '16px Arial';
+        ctx2.textAlign = 'center';
+        ctx2.fillText('音楽ファイルを選択すると波形が表示されます', waveformCanvas2.width / 2, waveformCanvas2.height / 2);
+    }
+    
+    // 時間表示の更新
+    function updateTimeDisplay() {
+        if (audioPlayer.duration) {
+            const currentTime = audioPlayer.currentTime;
+            const duration = audioPlayer.duration;
+            
+            currentTimeDisplay.textContent = formatTime(currentTime);
+            durationDisplay.textContent = formatTime(duration);
+            
+            // シークバーの更新
+            const progress = (currentTime / duration) * 100;
+            seekBars.forEach((bar, index) => {
+                if (index * 20 <= progress && progress < (index + 1) * 20) {
+                    bar.value = progress;
+                } else {
+                    bar.value = index * 20;
+                }
+            });
+            
+            // 波形の再生位置を更新
+            updateCurrentPlaybackPosition();
+        }
+    }
+    
+    // 再生速度表示の更新
+    function updateSpeedDisplay() {
+        speedDisplay.textContent = `${currentSpeed.toFixed(2)}x`;
+    }
+    
+    // 波形表示機能
+    function drawWaveform() {
+        if (!audioData || !waveformCanvas) return;
+        
+        const ctx = waveformCanvas.getContext('2d');
+        const ctx2 = waveformCanvas2.getContext('2d');
+        const canvasWidth = waveformCanvas.width;
+        const canvasHeight = waveformCanvas.height;
+        
+        // キャンバスをクリア
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        ctx2.clearRect(0, 0, canvasWidth, canvasHeight);
+        
+        // データを2段に分割
+        const halfLength = Math.floor(audioData.length / 2);
+        const firstHalf = audioData.slice(0, halfLength);
+        const secondHalf = audioData.slice(halfLength);
+        
+        // 第1段の波形を描画
+        drawWaveformSegment(ctx, firstHalf, canvasWidth, canvasHeight, 0, audioDuration / 2);
+        
+        // 第2段の波形を描画
+        drawWaveformSegment(ctx2, secondHalf, canvasWidth, canvasHeight, audioDuration / 2, audioDuration);
+    }
+    
+    function drawWaveformSegment(ctx, data, width, height, startTime, endTime) {
+        const centerY = height / 2;
+        const timeRange = endTime - startTime;
+        
+        // 波形を描画
+        ctx.strokeStyle = '#007bff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        
+        for (let i = 0; i < data.length; i++) {
+            const x = (i / data.length) * width;
+            const amplitude = data[i] * (height / 2) * 0.8; // 振幅を調整
+            const y = centerY + amplitude;
+            
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        
+        ctx.stroke();
+    }
+    
+    function updateCurrentPlaybackPosition() {
+        if (!waveformCanvas || !waveformCanvas2) return;
+        
+        const currentTime = audioPlayer.currentTime || 0;
+        const ctx = waveformCanvas.getContext('2d');
+        const ctx2 = waveformCanvas2.getContext('2d');
+        const canvasWidth = waveformCanvas.width;
+        const canvasHeight = waveformCanvas.height;
+        
+        // 音声データがある場合は波形を再描画してから再生位置を描画
+        if (audioData && audioDuration > 0) {
+            drawWaveform();
+        }
+        
+        // 現在の再生位置を描画
+        if (audioDuration > 0) {
+            if (currentTime <= audioDuration / 2) {
+                // 第1段に描画
+                const x = (currentTime / (audioDuration / 2)) * canvasWidth;
+                ctx.strokeStyle = '#28a745';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvasHeight);
+                ctx.stroke();
+            } else {
+                // 第2段に描画
+                const x = ((currentTime - audioDuration / 2) / (audioDuration / 2)) * canvasWidth;
+                ctx2.strokeStyle = '#28a745';
+                ctx2.lineWidth = 3;
+                ctx2.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvasHeight);
+                ctx2.stroke();
+            }
+        } else {
+            // 音声データがない場合でも、現在の再生時間に基づいて位置を表示
+            const duration = audioPlayer.duration || 1;
+            if (currentTime <= duration / 2) {
+                // 第1段に描画
+                const x = (currentTime / (duration / 2)) * canvasWidth;
+                ctx.strokeStyle = '#28a745';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvasHeight);
+                ctx.stroke();
+            } else {
+                // 第2段に描画
+                const x = ((currentTime - duration / 2) / (duration / 2)) * canvasWidth;
+                ctx2.strokeStyle = '#28a745';
+                ctx2.lineWidth = 3;
+                ctx2.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvasHeight);
+                ctx2.stroke();
+            }
+        }
+    }
+    
+    // 音楽選択時の処理
+    musicSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption.value) {
+            audioPlayer.src = selectedOption.dataset.url;
+            audioPlayer.load();
+            
+            // 波形データを読み込み
+            loadAudioData();
+            
+            // 再生ボタンを有効化
+            playPauseBtn.disabled = false;
+            playPauseBtn.classList.remove('btn-secondary');
+            playPauseBtn.classList.add('btn-primary');
+        } else {
+            // 音楽が選択されていない場合
+            audioPlayer.src = '';
+            playPauseBtn.disabled = true;
+            playPauseBtn.classList.remove('btn-primary');
+            playPauseBtn.classList.add('btn-secondary');
+            
+            // 波形をクリア
+            audioData = null;
+            audioDuration = 0;
+            if (waveformCanvas) {
+                const ctx = waveformCanvas.getContext('2d');
+                const ctx2 = waveformCanvas2.getContext('2d');
+                ctx.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+                ctx2.clearRect(0, 0, waveformCanvas2.width, waveformCanvas2.height);
+                
+                // 初期メッセージを表示
+                ctx.fillStyle = '#6c757d';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('音楽ファイルを選択すると波形が表示されます', waveformCanvas.width / 2, waveformCanvas.height / 2);
+                
+                ctx2.fillStyle = '#6c757d';
+                ctx2.font = '16px Arial';
+                ctx2.textAlign = 'center';
+                ctx2.fillText('音楽ファイルを選択すると波形が表示されます', waveformCanvas2.width / 2, waveformCanvas2.height / 2);
+            }
+        }
+    });
+    
+    // ループ設定の適用
+    function applyLoopSettings() {
+        const startTime = parseFloat(loopStartTimeInput.value) || 0;
+        const endTime = parseFloat(loopEndTimeInput.value) || 0;
+        
+        if (endTime > startTime) {
+            loopStartTime = startTime;
+            loopEndTime = endTime;
+            
+            // ループ設定モーダルを閉じる
+            const modal = bootstrap.Modal.getInstance(document.getElementById('loopSettingsModal'));
+            if (modal) {
+                modal.hide();
+            }
+            
+            alert(`ループ設定を適用しました: ${startTime}秒 ～ ${endTime}秒`);
+        } else {
+            alert('終了時間は開始時間より大きくしてください。');
+        }
+    }
+    
+    // ループ設定の処理
+    loopCheck.addEventListener('change', function() {
+        if (this.checked) {
+            const currentTime = audioPlayer.currentTime || 0;
+            loopEndTimeInput.value = currentTime.toFixed(1);
+        }
+    });
+    
+    applyLoopSettingsBtn.addEventListener('click', applyLoopSettings);
+    
+    // ループ設定モーダルが開かれたときの処理
+    document.getElementById('loopSettingsModal').addEventListener('show.bs.modal', function() {
+        loopStartTimeInput.value = loopStartTime.toFixed(1);
+        loopEndTimeInput.value = loopEndTime.toFixed(1);
+    });
+    
+    // 再生速度の制御
+    speedRange.addEventListener('input', function() {
+        const speed = parseFloat(this.value);
+        currentSpeed = speed;
+        audioPlayer.playbackRate = speed;
+        currentSpeedDisplay.textContent = speed.toFixed(2);
+        updateSpeedDisplay();
+    });
+    
+    // 再生速度モーダルが開かれたときに現在の速度を表示
+    document.getElementById('speedModal').addEventListener('show.bs.modal', function() {
+        speedRange.value = currentSpeed;
+        currentSpeedDisplay.textContent = currentSpeed.toFixed(2);
+        updateSpeedDisplay();
+    });
+    
+    // 再生/一時停止ボタンの処理
+    playPauseBtn.addEventListener('click', function() {
+        if (audioPlayer.paused) {
+            audioPlayer.play().catch(e => {
+                console.log('再生エラー:', e);
+                alert('音楽ファイルの再生に失敗しました。');
+            });
+            this.innerHTML = '<i class="bi bi-pause-fill" style="font-size: 2rem;"></i>';
+        } else {
+            audioPlayer.pause();
+            this.innerHTML = '<i class="bi bi-play-fill" style="font-size: 2rem;"></i>';
+        }
+    });
+    
+    // シークバーの処理
+    audioPlayer.addEventListener('timeupdate', function() {
+        updateTimeDisplay();
+    });
+    
+    // メタデータ読み込み完了
+    audioPlayer.addEventListener('loadedmetadata', function() {
+        updateTimeDisplay();
+        
+        // 音声データが読み込まれていない場合でも再生位置を表示
+        if (!audioData) {
+            audioDuration = audioPlayer.duration || 0;
+            updateCurrentPlaybackPosition();
+        }
+        
+        // 初期状態で最初のバーをアクティブにする
+        seekBars.forEach((bar, index) => {
+            if (index === 0) {
+                bar.classList.add('seek-bar-active');
+            } else {
+                bar.classList.add('seek-bar-inactive');
+            }
+        });
+    });
+    
+    // エラーハンドリング
+    audioPlayer.addEventListener('error', function(e) {
+        console.log('音声ファイルエラー:', e);
+        alert('音声ファイルの読み込みに失敗しました。');
+    });
+    
+    // 各シークバーのイベント処理
+    seekBars.forEach((bar, index) => {
+        // ドラッグ開始
+        bar.addEventListener('mousedown', function() {
+            isSeeking = true;
+            wasPlaying = !audioPlayer.paused;
+            if (wasPlaying) {
+                audioPlayer.pause();
+            }
+        });
+        
+        // ドラッグ中（リアルタイム更新）
+        bar.addEventListener('input', function() {
+            if (seekTimeout) {
+                clearTimeout(seekTimeout);
+            }
+            
+            const percentage = parseFloat(this.value);
+            seekTimeout = setTimeout(() => {
+                const targetTime = (percentage / 100) * audioPlayer.duration;
+                audioPlayer.currentTime = targetTime;
+            }, 50); // 50msのディレイでパフォーマンスを改善
+        });
+        
+        // ドラッグ終了（マウス）
+        bar.addEventListener('mouseup', function() {
+            if (isSeeking) {
+                const percentage = parseFloat(this.value);
+                const targetTime = (percentage / 100) * audioPlayer.duration;
+                audioPlayer.currentTime = targetTime;
+                
+                // 少し遅延させてから再生を再開
+                setTimeout(() => {
+                    if (wasPlaying) {
+                        audioPlayer.play().catch(e => console.log('再生エラー:', e));
+                    }
+                }, 100);
+            }
+            isSeeking = false;
+        });
+        
+        // タッチデバイス対応
+        bar.addEventListener('touchstart', function(e) {
+            e.preventDefault(); // デフォルトのタッチ動作を防止
+            isSeeking = true;
+            wasPlaying = !audioPlayer.paused;
+            if (wasPlaying) {
+                audioPlayer.pause();
+            }
+        });
+        
+        bar.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+            if (seekTimeout) {
+                clearTimeout(seekTimeout);
+            }
+            
+            const percentage = parseFloat(this.value);
+            seekTimeout = setTimeout(() => {
+                const targetTime = (percentage / 100) * audioPlayer.duration;
+                audioPlayer.currentTime = targetTime;
+            }, 50);
+        });
+        
+        bar.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            if (isSeeking) {
+                const percentage = parseFloat(this.value);
+                const targetTime = (percentage / 100) * audioPlayer.duration;
+                audioPlayer.currentTime = targetTime;
+                
+                // 少し遅延させてから再生を再開
+                setTimeout(() => {
+                    if (wasPlaying) {
+                        audioPlayer.play().catch(e => console.log('再生エラー:', e));
+                    }
+                }, 100);
+            }
+            isSeeking = false;
+        });
+    });
+    
+    // 音声データを読み込んで波形表示
+    function loadAudioData() {
+        const selectedOption = musicSelect.options[musicSelect.selectedIndex];
+        if (!selectedOption.value) return;
+        
+        // AudioContextを使用して音声データを取得
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        fetch(selectedOption.dataset.url)
+            .then(response => response.arrayBuffer())
+            .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+            .then(audioBuffer => {
+                // 音声データを取得
+                const channelData = audioBuffer.getChannelData(0);
+                audioDuration = audioBuffer.duration;
+                
+                // データをダウンサンプリング（パフォーマンス向上のため）
+                const sampleRate = 1000; // 1秒あたり1000サンプル
+                const downsampledData = [];
+                const step = Math.floor(channelData.length / (audioDuration * sampleRate));
+                
+                for (let i = 0; i < channelData.length; i += step) {
+                    downsampledData.push(channelData[i]);
+                }
+                
+                audioData = downsampledData;
+                
+                // 波形を描画
+                drawWaveform();
+                
+                // 初期再生位置を表示
+                updateCurrentPlaybackPosition();
+                
+                console.log(`音声データ読み込み完了: ${audioDuration}秒, ${audioData.length}サンプル`);
+            })
+            .catch(error => {
+                console.error('音声データ読み込みエラー:', error);
+                // エラー時でも再生位置を表示できるようにする
+                audioDuration = audioPlayer.duration || 0;
+                updateCurrentPlaybackPosition();
+            });
+    }
+    
+    // アップロード成功時の処理
+    {% if messages %}
+        {% for message in messages %}
+            if ("{{ message.tags }}" === "success") {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                setTimeout(function() {
+                    location.reload();
+                }, 1000);
+            }
+        {% endfor %}
+    {% endif %}
+});
+</script>
+{% endblock %} 
