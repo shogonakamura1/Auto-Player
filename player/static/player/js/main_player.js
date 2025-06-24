@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const data = await response.json();
             if (data.success) {
-                console.log('再生位置を保存しました:', formatTime(position));
+                // 保存成功
             } else {
                 console.error('再生位置の保存に失敗しました:', data.error);
             }
@@ -81,19 +81,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // 前回再生位置を取得する関数
     async function getPlaybackPosition(musicFileId) {
         try {
-            console.log('API呼び出し開始 - musicFileId:', musicFileId);
             const response = await fetch(`/api/get-position/${musicFileId}/`);
-            console.log('APIレスポンス:', response.status, response.statusText);
-            
             const data = await response.json();
-            console.log('APIデータ:', data);
             
             if (data.success) {
                 previousPosition = data.position;
-                console.log('=== 前回再生位置取得 ===');
-                console.log('取得した位置:', formatTime(previousPosition));
-                console.log('previousPosition設定:', previousPosition);
-                console.log('前回再生位置を取得しました:', formatTime(previousPosition));
                 return data.position;
             } else {
                 console.error('前回再生位置の取得に失敗しました:', data.error);
@@ -573,7 +565,6 @@ document.addEventListener('DOMContentLoaded', function() {
             recognition.lang = 'ja-JP';
             
             recognition.onstart = function() {
-                console.log('音声認識を開始しました');
                 isMicrophoneActive = true;
                 updateMicrophoneStatus();
             };
@@ -593,7 +584,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // キーワード検出
                 if (finalTranscript) {
-                    console.log('認識された音声:', finalTranscript);
                     checkKeyword(finalTranscript);
                 }
             };
@@ -603,7 +593,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (event.error === 'no-speech') {
                     // 無音の場合は再開
                     if (shouldKeepListening) {
-                        console.log('無音エラー - 音声認識を再開します');
                         setTimeout(() => {
                             if (shouldKeepListening) {
                                 recognition.start();
@@ -612,7 +601,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 } else {
                     // その他のエラーの場合も再開を試行
-                    console.log('音声認識エラー - 再開を試行します');
                     setTimeout(() => {
                         if (shouldKeepListening) {
                             recognition.start();
@@ -622,13 +610,11 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             
             recognition.onend = function() {
-                console.log('音声認識が終了しました');
                 isMicrophoneActive = false;
                 updateMicrophoneStatus();
                 
                 // 継続的に音声認識を続けるべき場合は再開
                 if (shouldKeepListening) {
-                    console.log('音声認識を自動再開します');
                     setTimeout(() => {
                         if (shouldKeepListening) {
                             recognition.start();
@@ -648,13 +634,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isPlaying) {
             // 音楽再生中は「はい」が含まれている場合
             if (text.includes('はい') || text.includes('ハイ')) {
-                console.log('キーワード「はい」を検出 - 音声コマンド開始');
                 startVoiceCommandFromKeyword(text, 'はい');
             }
         } else {
             // 音楽停止中は「行きます」が含まれている場合
             if (text.includes('行きます') || text.includes('いきます') || text.includes('イキマス')) {
-                console.log('キーワード「行きます」を検出 - 音声コマンド開始');
                 startVoiceCommandFromKeyword(text, '行きます');
             }
         }
@@ -675,11 +659,9 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (keyword === '行きます') {
             commandText = keywordText.replace(/行きます|いきます|イキマス/g, '').trim();
         }
-        console.log('抽出されたコマンド:', commandText);
         
         // 空のコマンドの場合は処理しない
         if (!commandText) {
-            console.log('空のコマンドのため処理をスキップします');
             isVoiceCommandActive = false;
             voiceCommandBtn.disabled = false;
             setTimeout(() => {
@@ -761,7 +743,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const currentPosition = audioPlayer.currentTime;
                 savePlaybackPosition(currentPosition);
                 previousPosition = currentPosition;
-                console.log('ボタン停止時に位置を保存しました:', formatTime(currentPosition));
             }
             audioPlayer.pause();
             this.innerHTML = '<i class="bi bi-play-fill"></i>';
@@ -810,10 +791,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const newTime = (progress / 100) * audioPlayer.duration;
                 savePlaybackPosition(newTime);
                 previousPosition = newTime;
-                console.log('=== シークバードラッグ終了 ===');
-                console.log('保存された位置:', formatTime(newTime));
-                console.log('previousPosition更新:', previousPosition);
-                console.log('ドラッグ終了位置を保存しました:', formatTime(newTime));
             }
             if (wasPlaying) {
                 audioPlayer.play();
@@ -886,39 +863,26 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             // コマンドの判定
             if (commandText.includes('戻って') || commandText.includes('もどって')) {
-                // ★デバッグ用：previousPositionの値を確認★
-                console.log('=== 戻ってコマンド実行 ===');
-                console.log('デバッグ - previousPosition:', previousPosition);
-                console.log('デバッグ - currentMusicFileId:', currentMusicFileId);
-                console.log('デバッグ - audioPlayer.currentTime:', audioPlayer.currentTime);
-                console.log('デバッグ - audioPlayer.duration:', audioPlayer.duration);
-                console.log('デバッグ - audioPlayer.readyState:', audioPlayer.readyState);
-                
                 if (previousPosition > 0 && currentMusicFileId) {
                     // audioPlayerが準備できているか確認
                     if (audioPlayer.readyState >= 2) { // HAVE_CURRENT_DATA以上
                         audioPlayer.currentTime = previousPosition;
-                        console.log('前回再生位置に戻りました:', formatTime(previousPosition));
                         voiceStatus.innerHTML = '<small class="text-success">前回再生位置に戻りました</small>';
                     } else {
                         // audioPlayerが準備できていない場合は、準備完了を待つ
-                        console.log('audioPlayerが準備中です。準備完了を待機します...');
                         audioPlayer.addEventListener('canplay', function onCanPlay() {
                             audioPlayer.removeEventListener('canplay', onCanPlay);
                             audioPlayer.currentTime = previousPosition;
-                            console.log('前回再生位置に戻りました（準備完了後）:', formatTime(previousPosition));
                             voiceStatus.innerHTML = '<small class="text-success">前回再生位置に戻りました</small>';
                         }, { once: true });
                     }
                 } else {
-                    console.log('前回再生位置がありません - previousPosition:', previousPosition, 'currentMusicFileId:', currentMusicFileId);
                     voiceStatus.innerHTML = '<small class="text-warning">前回再生位置がありません</small>';
                 }
             } else if (commandText.includes('最初から') || commandText.includes('初めから')) {
                 audioPlayer.currentTime = 0;
                 audioPlayer.play();
                 playPauseBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
-                console.log('最初から再生を開始しました');
                 voiceStatus.innerHTML = '<small class="text-success">最初から再生を開始しました</small>';
             } else if (commandText.includes('停止') || commandText.includes('とめる') || commandText.includes('ストップ')) {
                 // 停止前に現在位置を保存
@@ -926,16 +890,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     const currentPosition = audioPlayer.currentTime;
                     savePlaybackPosition(currentPosition);
                     previousPosition = currentPosition;
-                    console.log('停止時に位置を保存しました:', formatTime(currentPosition));
                 }
                 audioPlayer.pause();
                 playPauseBtn.innerHTML = '<i class="bi bi-play-fill"></i>';
-                console.log('再生を停止しました');
                 voiceStatus.innerHTML = '<small class="text-success">再生を停止しました</small>';
             } else if (commandText.includes('再生') || commandText.includes('さいせい') || commandText.includes('スタート')) {
                 audioPlayer.play();
                 playPauseBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
-                console.log('再生を開始しました');
                 voiceStatus.innerHTML = '<small class="text-success">再生を開始しました</small>';
             } else {
                 voiceStatus.innerHTML = '<small class="text-warning">認識できませんでした</small>';
