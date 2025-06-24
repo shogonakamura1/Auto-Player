@@ -21,6 +21,19 @@ class MusicFile(models.Model):
             self.file_size = self.file.size
         super().save(*args, **kwargs)
 
+class PlaybackPosition(models.Model):
+    """前回再生位置を記憶するモデル"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    music_file = models.ForeignKey(MusicFile, on_delete=models.CASCADE)
+    position = models.FloatField(default=0.0)  # 秒数
+    last_played_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['user', 'music_file']
+    
+    def __str__(self):
+        return f"{self.user.username if self.user else 'Anonymous'} - {self.music_file.title} at {self.position}s"
+
 class VoiceCommand(models.Model):
     command = models.CharField(max_length=100)
     action = models.CharField(max_length=100)

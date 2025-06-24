@@ -41,6 +41,16 @@
             <span id="currentTimeDisplay" class="text-muted">0.0</span> / <span id="durationDisplay" class="text-muted">0.0</span>
         </div>
         
+        <!-- Voice Command Button -->
+        <div class="mb-3 voice-command-section">
+            <button id="voice-command-btn" class="btn btn-warning">
+                <i class="bi bi-mic"></i> 音声コマンド
+            </button>
+            <div id="voice-status" class="mt-2">
+                <small class="text-muted">「戻って」「停止」「再生」などの音声コマンドに対応</small>
+            </div>
+        </div>
+        
         <!-- Loop Controls -->
         <div class="mb-3 loop-controls">
             <div class="form-check form-check-inline">
@@ -197,6 +207,32 @@
                     <button type="submit" class="btn btn-primary">アップロード</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Voice Command Modal -->
+<div class="modal" id="voiceModal" tabindex="-1" style="display: none;">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="voiceModalLabel">音声コマンド</h5>
+                <button type="button" class="btn-close" id="voiceModalClose"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <div id="voice-indicator" class="mb-3">
+                        <i class="bi bi-mic-mute" style="font-size: 2rem; color: #6c757d;"></i>
+                    </div>
+                    <p id="voice-message">音声を聞いています...</p>
+                    <div class="progress mb-3" style="display: none;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="voiceModalCloseBtn">キャンセル</button>
+            </div>
         </div>
     </div>
 </div>
