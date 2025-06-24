@@ -33,18 +33,15 @@
         
         <!-- Time Display -->
         <div class="mb-2">
-            <span id="time-display" class="text-muted">0.0 / 0.0</span>
+            <span id="currentTimeDisplay" class="text-muted">0.0</span> / <span id="durationDisplay" class="text-muted">0.0</span>
         </div>
         
         <!-- Loop Controls -->
         <div class="mb-3">
             <div class="form-check form-check-inline">
                 <input class="form-check-input" type="checkbox" id="loop-check">
-                <label class="form-check-label" for="loop-check">ループ再生</label>
+                <label class="form-check-label" for="loop-check">一曲リピート</label>
             </div>
-            <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#loopSettingsModal">
-                ループ設定
-            </button>
         </div>
         
         <!-- 5分割シークバー -->
@@ -199,48 +196,6 @@
     </div>
 </div>
 
-<!-- Loop Settings Modal -->
-<div class="modal fade" id="loopSettingsModal" tabindex="-1" aria-labelledby="loopSettingsModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="loopSettingsModalLabel">ループ設定</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label for="loop-start-time" class="form-label">ループ開始時間 (秒)</label>
-                    <input type="number" id="loop-start-time" class="form-control" value="0" min="0" step="0.1">
-                </div>
-                <div class="mb-3">
-                    <label for="loop-end-time" class="form-label">ループ終了時間 (秒)</label>
-                    <input type="number" id="loop-end-time" class="form-control" value="0" min="0" step="0.1">
-                </div>
-                <div class="mb-3">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="auto-loop-end">
-                        <label class="form-check-label" for="auto-loop-end">
-                            現在の再生位置を終了位置に設定
-                        </label>
-                    </div>
-                </div>
-                <div class="alert alert-info">
-                    <small>
-                        <strong>ヒント:</strong><br>
-                        • エイト単位ループ: 8エイト（1フレーズ）ごとに自動ループ<br>
-                        • カスタムループ: 指定した時間範囲を繰り返し再生<br>
-                        • 現在の再生位置を終了位置に設定すると、その時点でループが終了します
-                    </small>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
-                <button type="button" class="btn btn-primary" id="apply-loop-settings">設定を適用</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <style>
 /* 非アクティブなシークバーのつまみを完全に透明にする */
 .seek-bar-inactive {
@@ -293,7 +248,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const audioPlayer = document.getElementById('audio-player');
     const musicSelect = document.getElementById('music-select');
     const playPauseBtn = document.getElementById('play-pause-btn');
-    const timeDisplay = document.getElementById('time-display');
+    const currentTimeDisplay = document.getElementById('currentTimeDisplay');
+    const durationDisplay = document.getElementById('durationDisplay');
     const seekBars = [
         document.getElementById('seek-bar-1'),
         document.getElementById('seek-bar-2'),
@@ -306,10 +262,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const currentSpeedDisplay = document.getElementById('current-speed');
     const speedDisplay = document.getElementById('speed-display');
     const loopCheck = document.getElementById('loop-check');
-    const loopStartTimeInput = document.getElementById('loop-start-time');
-    const loopEndTimeInput = document.getElementById('loop-end-time');
-    const autoLoopEndCheck = document.getElementById('auto-loop-end');
-    const applyLoopSettingsBtn = document.getElementById('apply-loop-settings');
     const waveformCanvas = document.getElementById('waveform-canvas');
     const waveformCanvas2 = document.getElementById('waveform-canvas-2');
     
@@ -320,6 +272,13 @@ document.addEventListener('DOMContentLoaded', function() {
     let seekTimeout = null;
     let audioData = null;  // 音声データ（波形表示用）
     let audioDuration = 0;  // 音声の長さ
+    
+    // 時間を分:秒形式でフォーマットする関数
+    function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = Math.floor(seconds % 60);
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
     
     // 初期状態では再生ボタンを無効化
     playPauseBtn.disabled = true;
@@ -531,43 +490,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // ループ設定の適用
-    function applyLoopSettings() {
-        const startTime = parseFloat(loopStartTimeInput.value) || 0;
-        const endTime = parseFloat(loopEndTimeInput.value) || 0;
-        
-        if (endTime > startTime) {
-            loopStartTime = startTime;
-            loopEndTime = endTime;
-            
-            // ループ設定モーダルを閉じる
-            const modal = bootstrap.Modal.getInstance(document.getElementById('loopSettingsModal'));
-            if (modal) {
-                modal.hide();
-            }
-            
-            alert(`ループ設定を適用しました: ${startTime}秒 ～ ${endTime}秒`);
-        } else {
-            alert('終了時間は開始時間より大きくしてください。');
-        }
-    }
-    
-    // ループ設定の処理
-    loopCheck.addEventListener('change', function() {
-        if (this.checked) {
-            const currentTime = audioPlayer.currentTime || 0;
-            loopEndTimeInput.value = currentTime.toFixed(1);
-        }
-    });
-    
-    applyLoopSettingsBtn.addEventListener('click', applyLoopSettings);
-    
-    // ループ設定モーダルが開かれたときの処理
-    document.getElementById('loopSettingsModal').addEventListener('show.bs.modal', function() {
-        loopStartTimeInput.value = loopStartTime.toFixed(1);
-        loopEndTimeInput.value = loopEndTime.toFixed(1);
-    });
-    
     // 再生速度の制御
     speedRange.addEventListener('input', function() {
         const speed = parseFloat(this.value);
@@ -627,6 +549,14 @@ document.addEventListener('DOMContentLoaded', function() {
     audioPlayer.addEventListener('error', function(e) {
         console.log('音声ファイルエラー:', e);
         alert('音声ファイルの読み込みに失敗しました。');
+    });
+    
+    // 一曲リピート機能
+    audioPlayer.addEventListener('ended', function() {
+        if (loopCheck.checked) {
+            audioPlayer.currentTime = 0;
+            audioPlayer.play().catch(e => console.log('リピート再生エラー:', e));
+        }
     });
     
     // 各シークバーのイベント処理
