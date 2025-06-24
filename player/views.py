@@ -16,7 +16,6 @@ def test_api(request):
     """テスト用のAPIエンドポイント"""
     return JsonResponse({'message': 'API is working!'})
 
-@login_required
 def main_player(request):
     """
     Single page music player.
@@ -24,7 +23,6 @@ def main_player(request):
     music_files = MusicFile.objects.all().order_by('-uploaded_at')
     return render(request, 'player/main_player.html', {'music_files': music_files})
 
-@login_required
 def file_upload(request):
     if request.method == 'POST':
         form = MusicFileUploadForm(request.POST, request.FILES)
@@ -96,7 +94,6 @@ def get_playback_position(request, music_file_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-@login_required
 @csrf_exempt
 @require_http_methods(["POST"])
 def voice_command(request):
