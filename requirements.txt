@@ -1,9 +1,8 @@
 Django==4.2.7
 django-crispy-forms==2.1
 crispy-bootstrap5==0.7
-Pillow==10.1.0
+Pillow==10.4.0
 python-dotenv==1.0.0
 SpeechRecognition==3.10.0
-pyaudio==0.2.11
 gunicorn==21.2.0
 whitenoise==6.6.0 
