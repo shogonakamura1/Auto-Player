@@ -1,0 +1,91 @@
+/* 非アクティブなシークバーのつまみを完全に透明にする */
+.seek-bar-inactive {
+    opacity: 1;
+}
+
+.seek-bar-inactive::-webkit-slider-thumb {
+    opacity: 0;
+}
+
+.seek-bar-inactive::-moz-range-thumb {
+    opacity: 0;
+}
+
+.seek-bar-inactive::-ms-thumb {
+    opacity: 0;
+}
+
+/* アクティブなシークバーのつまみを表示 */
+.seek-bar-active {
+    opacity: 1;
+}
+
+.seek-bar-active::-webkit-slider-thumb {
+    opacity: 1;
+}
+
+.seek-bar-active::-moz-range-thumb {
+    opacity: 1;
+}
+
+.seek-bar-active::-ms-thumb {
+    opacity: 1;
+}
+
+/* エラーメッセージのスタイル */
+.error-message {
+    color: #dc3545;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    display: none;
+}
+
+/* 波形キャンバスのスタイル */
+.waveform-canvas {
+    border: 1px solid #ddd;
+    background: #f8f9fa;
+}
+
+/* プレイヤーコンテナのスタイル */
+.player-container {
+    max-width: 600px;
+}
+
+/* 波形表示エリアのスタイル */
+.waveform-container {
+    max-width: 1200px;
+}
+
+/* 再生ボタンのスタイル */
+.play-pause-btn {
+    width: 70px;
+    height: 70px;
+}
+
+.play-pause-btn i {
+    font-size: 2rem;
+}
+
+/* 速度表示のスタイル */
+.speed-display {
+    display: flex;
+    align-items: center;
+}
+
+/* シークバーコンテナのスタイル */
+.seek-bar-container {
+    margin-bottom: 1rem;
+}
+
+/* ループコントロールのスタイル */
+.loop-controls {
+    margin-bottom: 1rem;
+}
+
+/* 時間表示のスタイル */
+.time-display {
+    margin-bottom: 0.5rem;
+} 

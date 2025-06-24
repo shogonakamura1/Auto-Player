@@ -1,0 +1,225 @@
+/* シークバーの基本スタイル - より強力なセレクタ */
+input[type=range].form-range,
+input[type=range].form-range:focus,
+input[type=range].form-range:active,
+input[type=range].form-range:hover {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    background: transparent !important;
+    outline: none !important;
+    border: none !important;
+}
+
+/* デフォルトのつまみスタイル - より強力なセレクタ */
+input[type=range].form-range::-webkit-slider-thumb,
+input[type=range].form-range:focus::-webkit-slider-thumb,
+input[type=range].form-range:active::-webkit-slider-thumb,
+input[type=range].form-range:hover::-webkit-slider-thumb {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 16px !important;
+    height: 16px !important;
+    border-radius: 50% !important;
+    background: #007bff !important;
+    cursor: pointer !important;
+    border: 2px solid #fff !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+input[type=range].form-range::-moz-range-thumb,
+input[type=range].form-range:focus::-moz-range-thumb,
+input[type=range].form-range:active::-moz-range-thumb,
+input[type=range].form-range:hover::-moz-range-thumb {
+    width: 16px !important;
+    height: 16px !important;
+    border-radius: 50% !important;
+    background: #007bff !important;
+    cursor: pointer !important;
+    border: 2px solid #fff !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* 非アクティブなつまみを非表示 - より強力なセレクタ */
+input[type=range].form-range.seek-bar-inactive::-webkit-slider-thumb,
+input[type=range].form-range.seek-bar-inactive:focus::-webkit-slider-thumb,
+input[type=range].form-range.seek-bar-inactive:active::-webkit-slider-thumb,
+input[type=range].form-range.seek-bar-inactive:hover::-webkit-slider-thumb {
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+input[type=range].form-range.seek-bar-inactive::-moz-range-thumb,
+input[type=range].form-range.seek-bar-inactive:focus::-moz-range-thumb,
+input[type=range].form-range.seek-bar-inactive:active::-moz-range-thumb,
+input[type=range].form-range.seek-bar-inactive:hover::-moz-range-thumb {
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* トラックスタイル - より強力なセレクタ */
+input[type=range].form-range::-webkit-slider-track,
+input[type=range].form-range:focus::-webkit-slider-track,
+input[type=range].form-range:active::-webkit-slider-track,
+input[type=range].form-range:hover::-webkit-slider-track {
+    width: 100% !important;
+    height: 6px !important;
+    background: #e9ecef !important;
+    border-radius: 3px !important;
+    cursor: pointer !important;
+    border: none !important;
+    outline: none !important;
+}
+
+input[type=range].form-range::-moz-range-track,
+input[type=range].form-range:focus::-moz-range-track,
+input[type=range].form-range:active::-moz-range-track,
+input[type=range].form-range:hover::-moz-range-track {
+    width: 100% !important;
+    height: 6px !important;
+    background: #e9ecef !important;
+    border-radius: 3px !important;
+    cursor: pointer !important;
+    border: none !important;
+    outline: none !important;
+}
+
+/* さらに強力なセレクタでBootstrapを上書き */
+body input[type=range].form-range,
+body input[type=range].form-range:focus,
+body input[type=range].form-range:active,
+body input[type=range].form-range:hover {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    background: transparent !important;
+    outline: none !important;
+    border: none !important;
+}
+
+body input[type=range].form-range::-webkit-slider-thumb,
+body input[type=range].form-range:focus::-webkit-slider-thumb,
+body input[type=range].form-range:active::-webkit-slider-thumb,
+body input[type=range].form-range:hover::-webkit-slider-thumb {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 16px !important;
+    height: 16px !important;
+    border-radius: 50% !important;
+    background: #007bff !important;
+    cursor: pointer !important;
+    border: 2px solid #fff !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* モーダル関連のスタイル */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1050;
+}
+
+.modal.show {
+    display: block;
+}
+
+.modal-dialog {
+    position: relative;
+    width: auto;
+    margin: 0.5rem;
+    pointer-events: none;
+}
+
+.modal-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    pointer-events: auto;
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 0.375rem;
+    outline: 0;
+}
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+    z-index: 1040;
+}
+
+.modal-open {
+    overflow: hidden;
+}
+
+/* エラーメッセージのスタイル */
+.error-message {
+    color: #dc3545;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    display: none;
+}
+
+/* 波形キャンバスのスタイル */
+.waveform-canvas {
+    border: 1px solid #ddd;
+    background: #f8f9fa;
+}
+
+/* プレイヤーコンテナのスタイル */
+.player-container {
+    max-width: 600px;
+}
+
+/* 波形表示エリアのスタイル */
+.waveform-container {
+    max-width: 1200px;
+}
+
+/* 再生ボタンのスタイル */
+.play-pause-btn {
+    width: 70px;
+    height: 70px;
+}
+
+.play-pause-btn i {
+    font-size: 2rem;
+}
+
+/* 速度表示のスタイル */
+.speed-display {
+    display: flex;
+    align-items: center;
+}
+
+/* シークバーコンテナのスタイル */
+.seek-bar-container {
+    margin-bottom: 1rem;
+}
+
+/* ループコントロールのスタイル */
+.loop-controls {
+    margin-bottom: 1rem;
+}
+
+/* 時間表示のスタイル */
+.time-display {
+    margin-bottom: 0.5rem;
+} 
