@@ -11,7 +11,7 @@ class MusicFile(models.Model):
     duration = models.IntegerField(default=0)  # 秒数
     file_size = models.IntegerField(default=0)  # バイト数
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return self.title
@@ -37,7 +37,7 @@ class PlaybackPosition(models.Model):
 class VoiceCommand(models.Model):
     command = models.CharField(max_length=100)
     action = models.CharField(max_length=100)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
