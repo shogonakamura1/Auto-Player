@@ -880,10 +880,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     voiceStatus.innerHTML = '<small class="text-warning">前回再生位置がありません</small>';
                 }
             } else if (commandText.includes('最初から') || commandText.includes('初めから')) {
-                audioPlayer.currentTime = 0;
-                audioPlayer.play();
-                playPauseBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
-                voiceStatus.innerHTML = '<small class="text-success">最初から再生を開始しました</small>';
+                // audioPlayerが準備できているか確認
+                if (audioPlayer.readyState >= 2) { // HAVE_CURRENT_DATA以上
+                    audioPlayer.currentTime = 0;
+                    audioPlayer.play();
+                    playPauseBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
+                    voiceStatus.innerHTML = '<small class="text-success">最初から再生を開始しました</small>';
+                } else {
+                    // audioPlayerが準備できていない場合は、準備完了を待つ
+                    audioPlayer.addEventListener('canplay', function onCanPlay() {
+                        audioPlayer.removeEventListener('canplay', onCanPlay);
+                        audioPlayer.currentTime = 0;
+                        audioPlayer.play();
+                        playPauseBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
+                        voiceStatus.innerHTML = '<small class="text-success">最初から再生を開始しました</small>';
+                    }, { once: true });
+                }
             } else if (commandText.includes('停止') || commandText.includes('とめる') || commandText.includes('ストップ')) {
                 // 停止前に現在位置を保存
                 if (currentMusicFileId && audioPlayer.duration) {
