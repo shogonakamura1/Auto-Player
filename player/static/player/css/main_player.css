@@ -222,4 +222,35 @@ body input[type=range].form-range:hover::-webkit-slider-thumb {
 /* 時間表示のスタイル */
 .time-display {
     margin-bottom: 0.5rem;
+}
+
+/* モバイル対応の最小限の改善 */
+@media (max-width: 768px) {
+    /* ファイル選択ボタンのモバイル対応 */
+    input[type="file"].form-control {
+        font-size: 16px; /* iOSでズームを防ぐ */
+        min-height: 44px; /* タッチターゲットの最小サイズ */
+    }
+    
+    /* モバイルでのボタンサイズ調整 */
+    .btn {
+        min-height: 44px;
+        font-size: 16px;
+    }
+    
+    /* モバイルでのシークバー調整 */
+    input[type=range].form-range {
+        min-height: 44px;
+    }
+}
+
+/* WAVファイル警告のスタイル */
+#wav-warning {
+    border-left: 4px solid #ffc107;
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+#wav-warning i {
+    margin-right: 0.5rem;
 } 

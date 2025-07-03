@@ -1,14 +1,17 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import os
 import json
+import uuid
 import speech_recognition as sr
-from .models import MusicFile, PlaybackPosition
-from .forms import MusicFileForm, MusicFileUploadForm
+from django.conf import settings
+import mimetypes
+from mutagen import File as MutagenFile
+import tempfile
+import shutil
 
 # Create your views here.
 
@@ -18,49 +21,162 @@ def test_api(request):
 
 def main_player(request):
     """
-    Single page music player.
+    Single page music player with session-based file management.
     """
-    music_files = MusicFile.objects.all().order_by('-uploaded_at')
-    return render(request, 'player/main_player.html', {'music_files': music_files})
+    # セッションからファイルリストを取得
+    session_files = request.session.get('uploaded_files', [])
+    return render(request, 'player/main_player.html', {'session_files': session_files})
 
-def file_upload(request):
-    if request.method == 'POST':
-        form = MusicFileUploadForm(request.POST, request.FILES)
-        if form.is_valid():
-            form.save()
-            messages.success(request, '音楽ファイルが正常にアップロードされました。')
-            return redirect('player:main_player')
-        else:
-            messages.error(request, 'アップロードに失敗しました。')
-    return redirect('player:main_player')
+@csrf_exempt
+@require_http_methods(["POST"])
+def upload_file(request):
+    """セッション限定のファイルアップロード"""
+    try:
+        if 'file' not in request.FILES:
+            return JsonResponse({'error': 'ファイルが選択されていません'}, status=400)
+        
+        uploaded_file = request.FILES['file']
+        
+        # ファイル形式の検証
+        allowed_extensions = ['mp3', 'wav', 'flac', 'aac', 'ogg']
+        file_extension = uploaded_file.name.split('.')[-1].lower()
+        
+        if file_extension not in allowed_extensions:
+            return JsonResponse({'error': f'対応していないファイル形式です: {file_extension}'}, status=400)
+        
+        # ファイルサイズ制限（50MB）
+        if uploaded_file.size > 50 * 1024 * 1024:
+            return JsonResponse({'error': 'ファイルサイズが大きすぎます（50MB以下）'}, status=400)
+        
+        # セッション用の一時ディレクトリを作成
+        session_temp_dir = os.path.join(settings.MEDIA_ROOT, 'temp', str(request.session.session_key))
+        os.makedirs(session_temp_dir, exist_ok=True)
+        
+        # ユニークなファイル名を生成
+        file_id = str(uuid.uuid4())
+        file_extension = uploaded_file.name.split('.')[-1]
+        filename = f"{file_id}.{file_extension}"
+        file_path = os.path.join(session_temp_dir, filename)
+        
+        # ファイルを保存
+        with open(file_path, 'wb+') as destination:
+            for chunk in uploaded_file.chunks():
+                destination.write(chunk)
+        
+        # ファイルのメタデータを取得
+        try:
+            audio = MutagenFile(file_path)
+            duration = int(audio.info.length) if audio.info else 0
+        except:
+            duration = 0
+        
+        # 既存のファイルがある場合は削除
+        session_files = request.session.get('uploaded_files', [])
+        if session_files:
+            # 既存ファイルを物理的に削除
+            for existing_file in session_files:
+                try:
+                    if os.path.exists(existing_file['file_path']):
+                        os.remove(existing_file['file_path'])
+                except:
+                    pass  # ファイルが既に削除されている場合
+        
+        # セッションにファイル情報を保存（一つだけ）
+        file_info = {
+            'id': file_id,
+            'title': uploaded_file.name,
+            'filename': filename,
+            'file_path': file_path,
+            'duration': duration,
+            'file_size': uploaded_file.size,
+            'uploaded_at': str(uuid.uuid4())  # 簡易的なタイムスタンプ
+        }
+        
+        request.session['uploaded_files'] = [file_info]  # 配列に一つだけ保存
+        request.session.modified = True
+        
+        return JsonResponse({
+            'success': True,
+            'file': file_info,
+            'message': 'ファイルが正常にアップロードされました'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def delete_file(request, file_id):
+    """セッションからファイルを削除"""
+    try:
+        session_files = request.session.get('uploaded_files', [])
+        
+        # ファイルを検索
+        file_to_delete = None
+        for file_info in session_files:
+            if file_info['id'] == file_id:
+                file_to_delete = file_info
+                break
+        
+        if not file_to_delete:
+            return JsonResponse({'error': 'ファイルが見つかりません'}, status=404)
+        
+        # ファイルを物理的に削除
+        try:
+            if os.path.exists(file_to_delete['file_path']):
+                os.remove(file_to_delete['file_path'])
+        except:
+            pass  # ファイルが既に削除されている場合
+        
+        # セッションから削除
+        session_files = [f for f in session_files if f['id'] != file_id]
+        request.session['uploaded_files'] = session_files
+        request.session.modified = True
+        
+        return JsonResponse({'success': True, 'message': 'ファイルが削除されました'})
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_file_url(request, file_id):
+    """ファイルのURLを取得"""
+    try:
+        session_files = request.session.get('uploaded_files', [])
+        
+        for file_info in session_files:
+            if file_info['id'] == file_id:
+                # セッション用の一時URLを生成
+                file_url = f"/media/temp/{request.session.session_key}/{file_info['filename']}"
+                return JsonResponse({
+                    'success': True,
+                    'file_url': file_url,
+                    'file_info': file_info
+                })
+        
+        return JsonResponse({'error': 'ファイルが見つかりません'}, status=404)
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def save_playback_position(request):
-    """再生位置を保存するAPI"""
+    """再生位置をローカルストレージに保存（クライアントサイドで処理）"""
     try:
         data = json.loads(request.body)
-        music_file_id = data.get('music_file_id')
+        file_id = data.get('file_id')
         position = data.get('position', 0.0)
         
-        if not music_file_id:
-            return JsonResponse({'error': 'music_file_id is required'}, status=400)
+        if not file_id:
+            return JsonResponse({'error': 'file_id is required'}, status=400)
         
-        music_file = get_object_or_404(MusicFile, id=music_file_id)
-        
-        # 一時的にユーザーをNoneに設定（テスト用）
-        user = None
-        
-        # 既存の位置を更新するか、新しく作成
-        playback_position, created = PlaybackPosition.objects.get_or_create(
-            user=user,
-            music_file=music_file,
-            defaults={'position': position}
-        )
-        
-        if not created:
-            playback_position.position = position
-            playback_position.save()
+        # セッションに再生位置を保存（オプション）
+        playback_positions = request.session.get('playback_positions', {})
+        playback_positions[file_id] = position
+        request.session['playback_positions'] = playback_positions
+        request.session.modified = True
         
         return JsonResponse({'success': True, 'position': position})
     
@@ -69,27 +185,16 @@ def save_playback_position(request):
 
 @csrf_exempt
 @require_http_methods(["GET"])
-def get_playback_position(request, music_file_id):
-    """前回再生位置を取得するAPI"""
+def get_playback_position(request, file_id):
+    """前回再生位置を取得"""
     try:
-        music_file = get_object_or_404(MusicFile, id=music_file_id)
+        playback_positions = request.session.get('playback_positions', {})
+        position = playback_positions.get(file_id, 0.0)
         
-        # 一時的にユーザーをNoneに設定（テスト用）
-        user = None
-        
-        playback_position = PlaybackPosition.objects.filter(
-            user=user,
-            music_file=music_file
-        ).first()
-        
-        if playback_position:
-            return JsonResponse({
-                'success': True,
-                'position': playback_position.position,
-                'last_played_at': playback_position.last_played_at.isoformat()
-            })
-        else:
-            return JsonResponse({'success': True, 'position': 0.0})
+        return JsonResponse({
+            'success': True,
+            'position': position
+        })
     
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
@@ -148,5 +253,22 @@ def voice_command(request):
                 'message': f'音声認識サービスでエラーが発生しました: {str(e)}'
             })
     
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def cleanup_session_files(request):
+    """セッション終了時のクリーンアップ（オプション）"""
+    try:
+        session_temp_dir = os.path.join(settings.MEDIA_ROOT, 'temp', str(request.session.session_key))
+        if os.path.exists(session_temp_dir):
+            shutil.rmtree(session_temp_dir)
+        
+        # セッションデータをクリア
+        request.session['uploaded_files'] = []
+        request.session['playback_positions'] = {}
+        request.session.modified = True
+        
+        return JsonResponse({'success': True, 'message': 'セッションファイルがクリーンアップされました'})
+        
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

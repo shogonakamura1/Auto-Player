@@ -97,6 +97,9 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
+            "OPTIONS": {
+                "timeout": 20,
+            }
         }
     }
 
@@ -153,7 +156,32 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# セッション設定
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 3600  # 1時間
+SESSION_SAVE_EVERY_REQUEST = True
+
+# 一時ディレクトリの作成
+TEMP_DIR = MEDIA_ROOT / 'temp'
+TEMP_DIR.mkdir(exist_ok=True)
+
 # Login
 LOGIN_URL = '/admin/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
+# 開発環境でのパフォーマンス改善
+if DEBUG:
+    # 静的ファイルのキャッシュを無効化（開発時のみ）
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    
+    # データベース設定の最適化
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+            "OPTIONS": {
+                "timeout": 20,
+            }
+        }
+    }
