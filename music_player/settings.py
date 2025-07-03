@@ -160,7 +160,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 SESSION_COOKIE_AGE = 3600  # 1時間
 SESSION_SAVE_EVERY_REQUEST = True
-SESSION_COOKIE_MAX_SIZE = 4096  # 4KB制限
+# SESSION_COOKIE_MAX_SIZE = 4096  # 4KB制限 - コメントアウト（Herokuの制限に従う）
 
 # 一時ディレクトリの作成（ローカル開発環境のみ）
 if DEBUG and not os.environ.get('DYNO'):

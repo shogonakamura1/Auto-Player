@@ -48,9 +48,9 @@ def upload_file(request):
         if file_extension not in allowed_extensions:
             return JsonResponse({'error': f'対応していないファイル形式です: {file_extension}'}, status=400)
         
-        # ファイルサイズ制限（10MB）- Base64エンコードを考慮して小さく設定
-        if uploaded_file.size > 10 * 1024 * 1024:
-            return JsonResponse({'error': 'ファイルサイズが大きすぎます（10MB以下）'}, status=400)
+        # ファイルサイズ制限（5MB）
+        if uploaded_file.size > 5 * 1024 * 1024:
+            return JsonResponse({'error': 'ファイルサイズが大きすぎます（5MB以下）'}, status=400)
         
         # MEDIA_ROOTとセッション用の一時ディレクトリを必ず作成
         if not os.path.exists(settings.MEDIA_ROOT):
@@ -71,8 +71,8 @@ def upload_file(request):
             file_base64 = base64.b64encode(file_content).decode('utf-8')
             
             # Base64データのサイズチェック（セッション制限を考慮）
-            if len(file_base64) > 4 * 1024 * 1024:  # 4MB制限
-                return JsonResponse({'error': 'ファイルが大きすぎてセッションに保存できません（4MB以下）'}, status=400)
+            if len(file_base64) > 6 * 1024 * 1024:  # 6MB制限（5MBファイルのBase64エンコード後）
+                return JsonResponse({'error': 'ファイルが大きすぎてセッションに保存できません（5MB以下）'}, status=400)
                 
         except Exception as e:
             return JsonResponse({'error': f'ファイルの読み込みに失敗しました: {str(e)}'}, status=500)
