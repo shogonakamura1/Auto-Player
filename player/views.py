@@ -48,7 +48,9 @@ def upload_file(request):
         if uploaded_file.size > 50 * 1024 * 1024:
             return JsonResponse({'error': 'ファイルサイズが大きすぎます（50MB以下）'}, status=400)
         
-        # セッション用の一時ディレクトリを作成
+        # MEDIA_ROOTとセッション用の一時ディレクトリを必ず作成
+        if not os.path.exists(settings.MEDIA_ROOT):
+            os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
         session_temp_dir = os.path.join(settings.MEDIA_ROOT, 'temp', str(request.session.session_key))
         os.makedirs(session_temp_dir, exist_ok=True)
         
@@ -73,13 +75,12 @@ def upload_file(request):
         # 既存のファイルがある場合は削除
         session_files = request.session.get('uploaded_files', [])
         if session_files:
-            # 既存ファイルを物理的に削除
             for existing_file in session_files:
                 try:
                     if os.path.exists(existing_file['file_path']):
                         os.remove(existing_file['file_path'])
                 except:
-                    pass  # ファイルが既に削除されている場合
+                    pass
         
         # セッションにファイル情報を保存（一つだけ）
         file_info = {
@@ -89,10 +90,9 @@ def upload_file(request):
             'file_path': file_path,
             'duration': duration,
             'file_size': uploaded_file.size,
-            'uploaded_at': str(uuid.uuid4())  # 簡易的なタイムスタンプ
+            'uploaded_at': str(uuid.uuid4())
         }
-        
-        request.session['uploaded_files'] = [file_info]  # 配列に一つだけ保存
+        request.session['uploaded_files'] = [file_info]
         request.session.modified = True
         
         return JsonResponse({
