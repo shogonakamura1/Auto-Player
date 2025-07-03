@@ -48,9 +48,9 @@ def upload_file(request):
         if file_extension not in allowed_extensions:
             return JsonResponse({'error': f'対応していないファイル形式です: {file_extension}'}, status=400)
         
-        # ファイルサイズ制限（5MB）
-        if uploaded_file.size > 5 * 1024 * 1024:
-            return JsonResponse({'error': 'ファイルサイズが大きすぎます（5MB以下）'}, status=400)
+        # ファイルサイズ制限（12MB）
+        if uploaded_file.size > 12 * 1024 * 1024:
+            return JsonResponse({'error': 'ファイルサイズが大きすぎます（12MB以下）'}, status=400)
         
         # MEDIA_ROOTとセッション用の一時ディレクトリを必ず作成
         if not os.path.exists(settings.MEDIA_ROOT):
@@ -71,8 +71,8 @@ def upload_file(request):
             file_base64 = base64.b64encode(file_content).decode('utf-8')
             
             # Base64データのサイズチェック（セッション制限を考慮）
-            if len(file_base64) > 6 * 1024 * 1024:  # 6MB制限（5MBファイルのBase64エンコード後）
-                return JsonResponse({'error': 'ファイルが大きすぎてセッションに保存できません（5MB以下）'}, status=400)
+            if len(file_base64) > 16 * 1024 * 1024:  # 16MB制限（12MBファイルのBase64エンコード後）
+                return JsonResponse({'error': 'ファイルが大きすぎてセッションに保存できません（12MB以下）'}, status=400)
                 
         except Exception as e:
             return JsonResponse({'error': f'ファイルの読み込みに失敗しました: {str(e)}'}, status=500)
@@ -314,9 +314,9 @@ def upload_file_lightweight(request):
         if file_extension not in allowed_extensions:
             return JsonResponse({'error': f'対応していないファイル形式です: {file_extension}'}, status=400)
         
-        # ファイルサイズ制限（5MB）
-        if uploaded_file.size > 5 * 1024 * 1024:
-            return JsonResponse({'error': 'ファイルサイズが大きすぎます（5MB以下）'}, status=400)
+        # ファイルサイズ制限（12MB）
+        if uploaded_file.size > 12 * 1024 * 1024:
+            return JsonResponse({'error': 'ファイルサイズが大きすぎます（12MB以下）'}, status=400)
         
         # ユニークなファイル名を生成
         file_id = str(uuid.uuid4())
