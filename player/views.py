@@ -32,6 +32,10 @@ def main_player(request):
 def upload_file(request):
     """セッション限定のファイルアップロード"""
     try:
+        # セッションを確実に初期化
+        if not request.session.session_key:
+            request.session.create()
+        
         if 'file' not in request.FILES:
             return JsonResponse({'error': 'ファイルが選択されていません'}, status=400)
         
