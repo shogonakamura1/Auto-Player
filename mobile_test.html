@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>モバイルファイルテスト</title>
+    <style>
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 100%;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .test-item {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            background: #fafafa;
+        }
+        .file-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #007bff;
+            border-radius: 6px;
+            background: #f8f9fa;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        .result {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            width: 100%;
+            margin: 5px 0;
+            cursor: pointer;
+        }
+        .btn:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 ファイル選択テスト</h1>
+        
+        <div class="test-item">
+            <h3>🎵 音声ファイル選択</h3>
+            <input type="file" class="file-input" id="audio1" accept="audio/*">
+            <input type="file" class="file-input" id="audio2" accept="audio/mp3,audio/mpeg,audio/aac">
+            <input type="file" class="file-input" id="audio3" accept=".mp3,.m4a,.aac,.ogg">
+            <div id="result1"></div>
+        </div>
+        
+        <div class="test-item">
+            <h3>📋 デバイス情報</h3>
+            <div id="device-info" class="info"></div>
+        </div>
+        
+        <div class="test-item">
+            <h3>🧪 テスト機能</h3>
+            <button class="btn" onclick="testTouch()">タッチテスト</button>
+            <button class="btn" onclick="testFileAPI()">ファイルAPIテスト</button>
+            <button class="btn" onclick="clearAll()">クリア</button>
+            <div id="test-result"></div>
+        </div>
+    </div>
+
+    <script>
+        // デバイス情報
+        function showDeviceInfo() {
+            document.getElementById('device-info').innerHTML = `
+                <strong>ブラウザ:</strong> ${navigator.userAgent}<br>
+                <strong>画面:</strong> ${screen.width} x ${screen.height}<br>
+                <strong>ビューポート:</strong> ${window.innerWidth} x ${window.innerHeight}<br>
+                <strong>タッチ:</strong> ${('ontouchstart' in window) ? '✅' : '❌'}<br>
+                <strong>プラットフォーム:</strong> ${navigator.platform}
+            `;
+        }
+        
+        // ファイル選択処理
+        function handleFile(inputId) {
+            const input = document.getElementById(inputId);
+            const result = document.getElementById('result1');
+            
+            input.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const info = `
+                        <div class="success">
+                            <strong>✅ ${inputId} - 選択成功</strong><br>
+                            名前: ${file.name}<br>
+                            タイプ: ${file.type || 'Unknown'}<br>
+                            サイズ: ${(file.size / 1024 / 1024).toFixed(2)} MB
+                        </div>
+                    `;
+                    result.innerHTML += info;
+                }
+            });
+        }
+        
+        // テスト機能
+        function testTouch() {
+            const result = document.getElementById('test-result');
+            result.innerHTML = `
+                <div class="info">
+                    <strong>タッチテスト結果:</strong><br>
+                    タッチサポート: ${('ontouchstart' in window) ? '✅ Yes' : '❌ No'}<br>
+                    最大タッチポイント: ${navigator.maxTouchPoints || 'Unknown'}
+                </div>
+            `;
+        }
+        
+        function testFileAPI() {
+            const result = document.getElementById('test-result');
+            result.innerHTML = `
+                <div class="info">
+                    <strong>ファイルAPIテスト結果:</strong><br>
+                    File API: ${'File' in window ? '✅' : '❌'}<br>
+                    FileReader: ${'FileReader' in window ? '✅' : '❌'}<br>
+                    FileList: ${'FileList' in window ? '✅' : '❌'}
+                </div>
+            `;
+        }
+        
+        function clearAll() {
+            document.getElementById('result1').innerHTML = '';
+            document.getElementById('test-result').innerHTML = '';
+            document.getElementById('audio1').value = '';
+            document.getElementById('audio2').value = '';
+            document.getElementById('audio3').value = '';
+        }
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            showDeviceInfo();
+            handleFile('audio1');
+            handleFile('audio2');
+            handleFile('audio3');
+        });
+    </script>
+</body>
+</html> 

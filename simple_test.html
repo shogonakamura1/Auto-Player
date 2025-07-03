@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>モバイルファイル選択テスト</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #fafafa;
+        }
+        .file-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px dashed #007bff;
+            border-radius: 8px;
+            background: #f8f9fa;
+            font-size: 16px;
+            min-height: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .file-input:hover {
+            border-color: #0056b3;
+            background: #e7f3ff;
+        }
+        .file-input:focus {
+            outline: none;
+            border-color: #0056b3;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.25);
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+            font-weight: 500;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        .device-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 12px;
+            color: #6c757d;
+        }
+        .device-info p {
+            margin: 5px 0;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin: 10px 0;
+            transition: background 0.3s ease;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button:active {
+            transform: translateY(1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 モバイルファイル選択テスト</h1>
+        
+        <div class="info">
+            <strong>テスト目的:</strong> スマホでのファイル選択とWAV警告機能の動作確認
+        </div>
+        
+        <div class="test-section">
+            <h3>🎵 音声ファイル選択テスト</h3>
+            <input type="file" class="file-input" id="audio-file" accept="audio/mp3,audio/mpeg,audio/aac,audio/ogg,audio/wav,audio/m4a,audio/wma,audio/flac,audio/webm">
+            <div id="file-success" class="success"></div>
+            <div id="wav-warning" class="warning">
+                ⚠️ <strong>WAVファイル警告:</strong> このファイルは正常に動作しない可能性があります。MP3などの軽量な形式に変更してください。
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🎵 代替ファイル選択テスト</h3>
+            <p style="font-size: 14px; color: #666;">もし上記で音声ファイルが選択できない場合、以下を試してください：</p>
+            
+            <div style="margin: 10px 0;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">テスト1: 全ファイル形式</label>
+                <input type="file" class="file-input" id="all-files" accept="*/*">
+            </div>
+            
+            <div style="margin: 10px 0;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">テスト2: 拡張子ベース</label>
+                <input type="file" class="file-input" id="extension-files" accept=".mp3,.m4a,.aac,.ogg,.wav,.flac,.wma">
+            </div>
+            
+            <div style="margin: 10px 0;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">テスト3: 制限なし</label>
+                <input type="file" class="file-input" id="no-restriction">
+            </div>
+            
+            <div id="test-results-detail"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📋 デバイス情報</h3>
+            <div id="device-info" class="device-info"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🧪 追加テスト</h3>
+            <button class="test-button" onclick="testTouch()">タッチ機能テスト</button>
+            <button class="test-button" onclick="testFileAPI()">ファイルAPIテスト</button>
+            <button class="test-button" onclick="diagnoseFileSelection()">ファイル選択診断</button>
+            <button class="test-button" onclick="clearResults()">結果クリア</button>
+            <div id="test-results"></div>
+        </div>
+    </div>
+
+    <script>
+        // デバイス情報を表示
+        function showDeviceInfo() {
+            const deviceInfo = document.getElementById('device-info');
+            deviceInfo.innerHTML = `
+                <p><strong>User Agent:</strong> ${navigator.userAgent}</p>
+                <p><strong>Platform:</strong> ${navigator.platform}</p>
+                <p><strong>Language:</strong> ${navigator.language}</p>
+                <p><strong>Screen Size:</strong> ${screen.width} x ${screen.height}</p>
+                <p><strong>Viewport:</strong> ${window.innerWidth} x ${window.innerHeight}</p>
+                <p><strong>Touch Support:</strong> ${('ontouchstart' in window) ? '✅ Yes' : '❌ No'}</p>
+                <p><strong>Max Touch Points:</strong> ${navigator.maxTouchPoints || 'Unknown'}</p>
+                <p><strong>Connection:</strong> ${navigator.connection ? navigator.connection.effectiveType : 'Unknown'}</p>
+            `;
+        }
+        
+        // ファイル選択テスト
+        const fileInput = document.getElementById('audio-file');
+        const fileSuccess = document.getElementById('file-success');
+        const wavWarning = document.getElementById('wav-warning');
+        
+        // 複数テストケースの処理
+        const allFilesInput = document.getElementById('all-files');
+        const extensionFilesInput = document.getElementById('extension-files');
+        const noRestrictionInput = document.getElementById('no-restriction');
+        const testResultsDetail = document.getElementById('test-results-detail');
+        
+        function handleFileSelection(file, inputType) {
+            if (file) {
+                const fileName = file.name.toLowerCase();
+                const fileExtension = fileName.split('.').pop();
+                
+                const result = `
+                    <div class="success" style="margin: 10px 0;">
+                        <strong>✅ ${inputType} - ファイル選択成功!</strong><br>
+                        <strong>名前:</strong> ${file.name}<br>
+                        <strong>タイプ:</strong> ${file.type || 'Unknown'}<br>
+                        <strong>サイズ:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB<br>
+                        <strong>拡張子:</strong> .${fileExtension}<br>
+                        <strong>MIME Type:</strong> ${file.type || 'Not detected'}
+                    </div>
+                `;
+                
+                // メインのファイル選択の場合のみ警告を表示
+                if (inputType === 'メイン音声ファイル') {
+                    fileSuccess.innerHTML = result;
+                    fileSuccess.style.display = 'block';
+                    
+                    // WAVファイルの警告
+                    if (fileExtension === 'wav' || file.type === 'audio/wav') {
+                        wavWarning.style.display = 'block';
+                    } else {
+                        wavWarning.style.display = 'none';
+                    }
+                } else {
+                    // テストケースの結果を詳細エリアに表示
+                    testResultsDetail.innerHTML += result;
+                }
+                
+                console.log(`${inputType} - ファイル情報:`, {
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    extension: fileExtension
+                });
+            }
+        }
+        
+        fileInput.addEventListener('change', function(e) {
+            handleFileSelection(e.target.files[0], 'メイン音声ファイル');
+        });
+        
+        allFilesInput.addEventListener('change', function(e) {
+            handleFileSelection(e.target.files[0], '全ファイル形式');
+        });
+        
+        extensionFilesInput.addEventListener('change', function(e) {
+            handleFileSelection(e.target.files[0], '拡張子ベース');
+        });
+        
+        noRestrictionInput.addEventListener('change', function(e) {
+            handleFileSelection(e.target.files[0], '制限なし');
+        });
+        
+        // タッチ機能テスト
+        function testTouch() {
+            const results = document.getElementById('test-results');
+            const touchSupported = 'ontouchstart' in window;
+            const maxTouchPoints = navigator.maxTouchPoints || 0;
+            
+            results.innerHTML = `
+                <div class="success">
+                    <strong>タッチ機能テスト結果:</strong><br>
+                    ✅ タッチサポート: ${touchSupported ? 'Yes' : 'No'}<br>
+                    ✅ 最大タッチポイント: ${maxTouchPoints}<br>
+                    ✅ タッチイベント: ${touchSupported ? '利用可能' : '利用不可'}
+                </div>
+            `;
+        }
+        
+        // ファイルAPIテスト
+        function testFileAPI() {
+            const results = document.getElementById('test-results');
+            const fileAPISupported = 'File' in window && 'FileReader' in window;
+            
+            results.innerHTML = `
+                <div class="success">
+                    <strong>ファイルAPIテスト結果:</strong><br>
+                    ✅ File API: ${fileAPISupported ? 'サポート済み' : '未サポート'}<br>
+                    ✅ FileReader: ${'FileReader' in window ? 'サポート済み' : '未サポート'}<br>
+                    ✅ FileList: ${'FileList' in window ? 'サポート済み' : '未サポート'}
+                </div>
+            `;
+        }
+        
+        // ファイル選択診断
+        function diagnoseFileSelection() {
+            const results = document.getElementById('test-results');
+            const acceptAttributes = [
+                { name: 'audio/*', value: 'audio/*' },
+                { name: 'audio/mp3,audio/mpeg', value: 'audio/mp3,audio/mpeg' },
+                { name: '.mp3,.m4a,.aac', value: '.mp3,.m4a,.aac' },
+                { name: '制限なし', value: '' }
+            ];
+            
+            let diagnosis = '<div class="info"><strong>ファイル選択診断結果:</strong><br>';
+            
+            // ブラウザ情報
+            diagnosis += `<strong>ブラウザ:</strong> ${navigator.userAgent}<br>`;
+            diagnosis += `<strong>プラットフォーム:</strong> ${navigator.platform}<br>`;
+            
+            // accept属性のテスト
+            diagnosis += '<br><strong>Accept属性の推奨設定:</strong><br>';
+            acceptAttributes.forEach(attr => {
+                diagnosis += `• ${attr.name}: ${attr.value}<br>`;
+            });
+            
+            // モバイル特有の制限
+            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                diagnosis += '<br><strong>モバイル特有の制限:</strong><br>';
+                diagnosis += '• iOS Safari: 一部の音声形式が制限される場合があります<br>';
+                diagnosis += '• Android Chrome: より多くの形式をサポート<br>';
+                diagnosis += '• ファイル選択ダイアログはOSによって異なります<br>';
+            }
+            
+            diagnosis += '</div>';
+            results.innerHTML = diagnosis;
+        }
+        
+        // 結果クリア
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+            document.getElementById('test-results-detail').innerHTML = '';
+            document.getElementById('file-success').style.display = 'none';
+            document.getElementById('wav-warning').style.display = 'none';
+            
+            // ファイル入力をリセット
+            document.getElementById('audio-file').value = '';
+            document.getElementById('all-files').value = '';
+            document.getElementById('extension-files').value = '';
+            document.getElementById('no-restriction').value = '';
+        }
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            showDeviceInfo();
+            
+            // ファイル入力のラベルを改善
+            fileInput.addEventListener('click', function() {
+                console.log('ファイル選択ボタンがクリックされました');
+            });
+            
+            // タッチイベントのテスト
+            if ('ontouchstart' in window) {
+                fileInput.addEventListener('touchstart', function() {
+                    console.log('タッチイベントが検出されました');
+                });
+            }
+        });
+    </script>
+</body>
+</html> 

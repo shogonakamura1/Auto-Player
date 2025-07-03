@@ -64,24 +64,34 @@ def upload_file(request):
         filename = f"{file_id}.{file_extension}"
         file_path = os.path.join(session_temp_dir, filename)
         
-        # ファイルを保存
-        with open(file_path, 'wb+') as destination:
-            for chunk in uploaded_file.chunks():
-                destination.write(chunk)
+        # ファイルをBase64エンコードしてセッションに保存
+        file_content = uploaded_file.read()
+        import base64
+        file_base64 = base64.b64encode(file_content).decode('utf-8')
         
-        # ファイルのメタデータを取得
+        # ファイルのメタデータを取得（一時ファイルから）
+        temp_file_path = os.path.join(session_temp_dir, filename)
+        with open(temp_file_path, 'wb+') as destination:
+            destination.write(file_content)
+        
         try:
-            audio = MutagenFile(file_path)
+            audio = MutagenFile(temp_file_path)
             duration = int(audio.info.length) if audio.info else 0
         except:
             duration = 0
+        
+        # 一時ファイルを削除
+        try:
+            os.remove(temp_file_path)
+        except:
+            pass
         
         # 既存のファイルがある場合は削除
         session_files = request.session.get('uploaded_files', [])
         if session_files:
             for existing_file in session_files:
                 try:
-                    if os.path.exists(existing_file['file_path']):
+                    if os.path.exists(existing_file.get('file_path', '')):
                         os.remove(existing_file['file_path'])
                 except:
                     pass
@@ -91,7 +101,7 @@ def upload_file(request):
             'id': file_id,
             'title': uploaded_file.name,
             'filename': filename,
-            'file_path': file_path,
+            'file_base64': file_base64,
             'duration': duration,
             'file_size': uploaded_file.size,
             'uploaded_at': str(uuid.uuid4())
@@ -125,12 +135,8 @@ def delete_file(request, file_id):
         if not file_to_delete:
             return JsonResponse({'error': 'ファイルが見つかりません'}, status=404)
         
-        # ファイルを物理的に削除
-        try:
-            if os.path.exists(file_to_delete['file_path']):
-                os.remove(file_to_delete['file_path'])
-        except:
-            pass  # ファイルが既に削除されている場合
+        # ファイルはBase64データなので物理削除は不要
+        pass
         
         # セッションから削除
         session_files = [f for f in session_files if f['id'] != file_id]
@@ -144,18 +150,16 @@ def delete_file(request, file_id):
 
 @csrf_exempt
 @require_http_methods(["GET"])
-def get_file_url(request, file_id):
-    """ファイルのURLを取得"""
+def get_file_data(request, file_id):
+    """ファイルのBase64データを取得"""
     try:
         session_files = request.session.get('uploaded_files', [])
         
         for file_info in session_files:
             if file_info['id'] == file_id:
-                # セッション用の一時URLを生成
-                file_url = f"/media/temp/{request.session.session_key}/{file_info['filename']}"
                 return JsonResponse({
                     'success': True,
-                    'file_url': file_url,
+                    'file_base64': file_info.get('file_base64', ''),
                     'file_info': file_info
                 })
         

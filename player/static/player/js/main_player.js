@@ -268,20 +268,20 @@ document.addEventListener('DOMContentLoaded', function() {
         listGroup.appendChild(fileItem);
     }
     
-    // ファイルのURLを取得する関数
-    async function getFileUrl(fileId) {
+    // ファイルのBase64データを取得する関数
+    async function getFileData(fileId) {
         try {
-            const response = await fetch(`/api/file-url/${fileId}/`);
+            const response = await fetch(`/api/file-data/${fileId}/`);
             const data = await response.json();
             
             if (data.success) {
-                return data.file_url;
+                return data.file_base64;
             } else {
-                console.error('ファイルURLの取得に失敗しました:', data.error);
+                console.error('ファイルデータの取得に失敗しました:', data.error);
                 return null;
             }
         } catch (error) {
-            console.error('ファイルURLの取得に失敗しました:', error);
+            console.error('ファイルデータの取得に失敗しました:', error);
             return null;
         }
     }
@@ -680,9 +680,19 @@ document.addEventListener('DOMContentLoaded', function() {
     async function playFile(fileId) {
         if (!fileId) return;
         currentFileId = fileId;
-        // ファイルのURLを取得
-        const fileUrl = await getFileUrl(fileId);
-        if (fileUrl) {
+        // ファイルのBase64データを取得
+        const fileBase64 = await getFileData(fileId);
+        if (fileBase64) {
+            // Base64データからBlobを作成し、URLを生成
+            const byteCharacters = atob(fileBase64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'audio/mpeg' });
+            const fileUrl = URL.createObjectURL(blob);
+            
             // 1. srcをセットし、load()を必ず呼ぶ
             audioPlayer.src = fileUrl;
             audioPlayer.load();
