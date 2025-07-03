@@ -161,10 +161,10 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 3600  # 1時間
 SESSION_SAVE_EVERY_REQUEST = True
 
-# 一時ディレクトリの作成（開発環境でのみ）
-if DEBUG:
+# 一時ディレクトリの作成（ローカル開発環境のみ）
+if DEBUG and not os.environ.get('DYNO'):
     TEMP_DIR = MEDIA_ROOT / 'temp'
-    TEMP_DIR.mkdir(exist_ok=True)
+    TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
 # Login
 LOGIN_URL = '/admin/login/'
