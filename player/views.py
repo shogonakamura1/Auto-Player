@@ -48,9 +48,9 @@ def upload_file(request):
         if file_extension not in allowed_extensions:
             return JsonResponse({'error': f'対応していないファイル形式です: {file_extension}'}, status=400)
         
-        # ファイルサイズ制限（50MB）
-        if uploaded_file.size > 50 * 1024 * 1024:
-            return JsonResponse({'error': 'ファイルサイズが大きすぎます（50MB以下）'}, status=400)
+        # ファイルサイズ制限（10MB）- Base64エンコードを考慮して小さく設定
+        if uploaded_file.size > 10 * 1024 * 1024:
+            return JsonResponse({'error': 'ファイルサイズが大きすぎます（10MB以下）'}, status=400)
         
         # MEDIA_ROOTとセッション用の一時ディレクトリを必ず作成
         if not os.path.exists(settings.MEDIA_ROOT):
@@ -65,9 +65,17 @@ def upload_file(request):
         file_path = os.path.join(session_temp_dir, filename)
         
         # ファイルをBase64エンコードしてセッションに保存
-        file_content = uploaded_file.read()
-        import base64
-        file_base64 = base64.b64encode(file_content).decode('utf-8')
+        try:
+            file_content = uploaded_file.read()
+            import base64
+            file_base64 = base64.b64encode(file_content).decode('utf-8')
+            
+            # Base64データのサイズチェック（セッション制限を考慮）
+            if len(file_base64) > 4 * 1024 * 1024:  # 4MB制限
+                return JsonResponse({'error': 'ファイルが大きすぎてセッションに保存できません（4MB以下）'}, status=400)
+                
+        except Exception as e:
+            return JsonResponse({'error': f'ファイルの読み込みに失敗しました: {str(e)}'}, status=500)
         
         # ファイルのメタデータを取得（一時ファイルから）
         temp_file_path = os.path.join(session_temp_dir, filename)
@@ -277,6 +285,109 @@ def cleanup_session_files(request):
         request.session.modified = True
         
         return JsonResponse({'success': True, 'message': 'セッションファイルがクリーンアップされました'})
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def upload_file_lightweight(request):
+    """軽量版ファイルアップロード（ファイルシステム使用）"""
+    try:
+        # セッションを確実に初期化
+        if not request.session.session_key:
+            request.session.create()
+        
+        if 'file' not in request.FILES:
+            return JsonResponse({'error': 'ファイルが選択されていません'}, status=400)
+        
+        uploaded_file = request.FILES['file']
+        
+        # ファイル形式の検証
+        allowed_extensions = ['mp3', 'wav', 'flac', 'aac', 'ogg']
+        file_extension = uploaded_file.name.split('.')[-1].lower()
+        
+        if file_extension not in allowed_extensions:
+            return JsonResponse({'error': f'対応していないファイル形式です: {file_extension}'}, status=400)
+        
+        # ファイルサイズ制限（5MB）
+        if uploaded_file.size > 5 * 1024 * 1024:
+            return JsonResponse({'error': 'ファイルサイズが大きすぎます（5MB以下）'}, status=400)
+        
+        # ユニークなファイル名を生成
+        file_id = str(uuid.uuid4())
+        filename = f"{file_id}.{file_extension}"
+        
+        # 一時ディレクトリに保存
+        temp_dir = os.path.join(settings.MEDIA_ROOT, 'temp_uploads')
+        os.makedirs(temp_dir, exist_ok=True)
+        file_path = os.path.join(temp_dir, filename)
+        
+        # ファイルを保存
+        with open(file_path, 'wb+') as destination:
+            for chunk in uploaded_file.chunks():
+                destination.write(chunk)
+        
+        # ファイルのメタデータを取得
+        try:
+            audio = MutagenFile(file_path)
+            duration = int(audio.info.length) if audio.info else 0
+        except:
+            duration = 0
+        
+        # 既存のファイルがある場合は削除
+        session_files = request.session.get('uploaded_files', [])
+        if session_files:
+            for existing_file in session_files:
+                try:
+                    if os.path.exists(existing_file.get('file_path', '')):
+                        os.remove(existing_file['file_path'])
+                except:
+                    pass
+        
+        # セッションにファイル情報を保存（一つだけ）
+        file_info = {
+            'id': file_id,
+            'title': uploaded_file.name,
+            'filename': filename,
+            'file_path': file_path,
+            'duration': duration,
+            'file_size': uploaded_file.size,
+            'uploaded_at': str(uuid.uuid4())
+        }
+        request.session['uploaded_files'] = [file_info]
+        request.session.modified = True
+        
+        return JsonResponse({
+            'success': True,
+            'file': file_info,
+            'message': 'ファイルが正常にアップロードされました'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_file_url_lightweight(request, file_id):
+    """軽量版ファイルURL取得"""
+    try:
+        session_files = request.session.get('uploaded_files', [])
+        
+        for file_info in session_files:
+            if file_info['id'] == file_id:
+                # ファイルが存在するかチェック
+                if os.path.exists(file_info.get('file_path', '')):
+                    file_url = f"/media/temp_uploads/{file_info['filename']}"
+                    return JsonResponse({
+                        'success': True,
+                        'file_url': file_url,
+                        'file_info': file_info
+                    })
+                else:
+                    return JsonResponse({'error': 'ファイルが見つかりません'}, status=404)
+        
+        return JsonResponse({'error': 'ファイルが見つかりません'}, status=404)
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
