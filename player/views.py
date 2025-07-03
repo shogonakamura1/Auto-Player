@@ -143,8 +143,12 @@ def delete_file(request, file_id):
         if not file_to_delete:
             return JsonResponse({'error': 'ファイルが見つかりません'}, status=404)
         
-        # ファイルはBase64データなので物理削除は不要
-        pass
+        # ファイルを物理的に削除
+        try:
+            if os.path.exists(file_to_delete.get('file_path', '')):
+                os.remove(file_to_delete['file_path'])
+        except:
+            pass  # ファイルが既に削除されている場合
         
         # セッションから削除
         session_files = [f for f in session_files if f['id'] != file_id]
